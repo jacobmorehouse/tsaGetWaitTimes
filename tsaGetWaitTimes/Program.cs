@@ -22,6 +22,10 @@ namespace tsaGetWaitTimes
             var theUri = "http://apps.tsa.dhs.gov/MyTSAWebService/GetTSOWaitTimes.ashx?ap="; //needs the airport code after the =, such as SEA.
             XmlDocument xmlResult = new XmlDocument();
 
+
+
+            
+
             try
             {
                 HttpWebRequest webReq = WebRequest.CreateHttp(theUri);
