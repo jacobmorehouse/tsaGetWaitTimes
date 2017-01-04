@@ -23,7 +23,7 @@ namespace tsaGetWaitTimes
             XmlDocument xmlResult = new XmlDocument();
 
             
-            //test2
+            //test3
             try
             {
                 HttpWebRequest webReq = WebRequest.CreateHttp(theUri);
