@@ -7,6 +7,10 @@ using System.Xml;
 using System.Data.SqlClient;
 using System.Data;
 
+/*
+ * To show the console window again: Solution Explorer > right click project > properties > Application tab > output type to console.
+ */
+
 namespace tsaGetWaitTimes
 {
     class databaseOps
@@ -61,6 +65,7 @@ namespace tsaGetWaitTimes
             cmd1.ExecuteNonQuery();
             sqlConnection1.Close();
         }
+        
     }
 
     class waitTime
