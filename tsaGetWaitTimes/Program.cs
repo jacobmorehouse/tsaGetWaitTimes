@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using System.Data.SqlClient;
 using System.Data;
@@ -33,9 +30,7 @@ namespace tsaGetWaitTimes
             {
                 while (reader.Read())
                 {
-                    
                     string tempAirportCode = reader["shortcode"].ToString();
-                    //Console.WriteLine("tempAirportCode: " + tempAirportCode);
                     listOfAirports.Add(tempAirportCode);
                 }
             }
@@ -47,16 +42,37 @@ namespace tsaGetWaitTimes
             sqlConnection1.Close();
         }
 
+        public static void insertWaitTime(waitTime iwaitTime)
+        {
+            SqlConnection sqlConnection1 = new SqlConnection(connectionString);
+            SqlCommand cmd1 = new SqlCommand();
+            
+            cmd1.CommandText = String.Format(@"
+                IF NOT EXISTS(SELECT * FROM waittimes WHERE airportcode = '{0}' and checkpointindex = '{1}' and waittime = '{2}' and tsadatecreated = '{3}')
+                INSERT INTO waittimes 
+                    (airportcode, checkpointindex, waittime, tsadatecreated) 
+                values ('{0}','{1}','{2}','{3}')
+                ", iwaitTime.airportCode, iwaitTime.checkpoint, iwaitTime.thisWaitTime, iwaitTime.Created_Datetime.Substring(0, iwaitTime.Created_Datetime.Length - 6));
+
+            cmd1.CommandType = CommandType.Text;
+            cmd1.Connection = sqlConnection1;
+
+            sqlConnection1.Open();
+            cmd1.ExecuteNonQuery();
+            sqlConnection1.Close();
+        }
     }
 
     class waitTime
     {
+        public string airportCode { get; set; }
         public int checkpoint { get; set; }
         public string Created_Datetime { get; set; }
         public int thisWaitTime { get; set; }
 
-        public waitTime(int checkpoint, int thisWaitTime, string Created_Datetime)
+        public waitTime(string airportCode, int checkpoint, int thisWaitTime, string Created_Datetime)
         {
+            this.airportCode = airportCode;
             this.checkpoint = checkpoint;
             this.thisWaitTime = thisWaitTime;
             this.Created_Datetime = Created_Datetime;
@@ -71,9 +87,6 @@ namespace tsaGetWaitTimes
             var theUri = "http://apps.tsa.dhs.gov/MyTSAWebService/GetTSOWaitTimes.ashx?ap="; //needs the airport code after the =, such as SEA.
             XmlDocument xmlResult = new XmlDocument();
             List<string> listOfAirports = new List<string>();
-            List<waitTime> listWaitTimes = new List<waitTime>();
-
-            //first get a list of airport codes to look up
             databaseOps.listAirports(ref listOfAirports);
 
             foreach (var ap in listOfAirports)
@@ -92,26 +105,18 @@ namespace tsaGetWaitTimes
                     {
                         var result = streamReader.ReadToEnd();
                         xmlResult.LoadXml(result);
-
-                        //Console.WriteLine(xmlResult.SelectNodes("/WaitTimes")); //todo left off here
-
+                        
                         XmlNodeList xmlNodes = xmlResult.SelectNodes("/DocumentElement/WaitTimes");
                         foreach (XmlNode node in xmlNodes)
                         {
                             waitTime thisWait = new waitTime(
+                                airportCode: ap,
                                 checkpoint: Int32.Parse(node["CheckpointIndex"].InnerText),
                                 thisWaitTime: Int32.Parse(node["WaitTime"].InnerText),
                                 Created_Datetime: node["Created_Datetime"].InnerText
                             );
 
-                            Console.WriteLine("");
-                            Console.WriteLine("Begin thisWait Object");
-                            Console.WriteLine("checkpoint: {0}", thisWait.checkpoint);
-                            Console.WriteLine("wait: {0}", thisWait.thisWaitTime);
-                            Console.WriteLine("Created: {0}", thisWait.Created_Datetime);
-                            Console.WriteLine("");
-
-                            listWaitTimes.Add(thisWait);
+                            databaseOps.insertWaitTime(thisWait);
                         }
                     }
                 }
@@ -120,11 +125,6 @@ namespace tsaGetWaitTimes
                     Console.WriteLine("catch1 triggered: {0}", e.Message);
                 }
             }
-
-            //TODO left off here. Wait times are successfully stored in listWaitTimes.
-            Console.ReadLine();
-            
-
         }
     }
 }
